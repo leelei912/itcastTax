@@ -1,0 +1,120 @@
+package cn.itcastTax.nsfw.user.service.impl;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.Serializable;
+import java.math.BigDecimal;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.servlet.ServletOutputStream;
+
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFFont;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.stereotype.Service;
+
+import cn.itcastTax.core.util.ExcelUtil;
+import cn.itcastTax.nsfw.user.dao.UserDao;
+import cn.itcastTax.nsfw.user.entity.User;
+import cn.itcastTax.nsfw.user.service.UserService;
+
+@Service("userService")
+public class UserServiceImpl implements UserService {
+	
+	@Resource
+	private UserDao userDao;
+
+	@Override
+	public void save(User entity) {
+		userDao.save(entity);
+	}
+
+	@Override
+	public void update(User entity) {
+		userDao.update(entity);
+	}
+
+	@Override
+	public void delete(Serializable id) {
+		userDao.delete(id);
+	}
+
+	@Override
+	public User findObjectById(Serializable id) {
+		return userDao.findObjectById(id);
+	}
+
+	@Override
+	public List<User> findObjects() {
+		return userDao.findObjects();
+	}
+
+	@Override
+	public void exportExcel(List<User> userList,
+			ServletOutputStream outputStream) {
+		ExcelUtil.exportUserExcel(userList, outputStream);
+	}
+
+	@Override
+	public void importExcel(File headImg, String headImgFileName) {
+		try {
+			FileInputStream inputStream = new FileInputStream(headImg);
+			boolean is03Excel = headImgFileName.matches("^.+\\.(?i)(xls)$");
+			Workbook workbook = is03Excel?new HSSFWorkbook(inputStream):new XSSFWorkbook(inputStream);
+			Sheet sheet = workbook.getSheetAt(0);
+			User user = null;
+			for(int i=2;i<sheet.getPhysicalNumberOfRows();i++){
+				user = new User();
+				Row row = sheet.getRow(i);
+				//用户名
+				Cell cellName = row.getCell(0);
+				user.setName(cellName.getStringCellValue());
+				//账号
+				Cell cellCount = row.getCell(1);
+				user.setAccount(cellCount.getStringCellValue());
+				//部门
+				Cell cellApart = row.getCell(2);
+				user.setDept(cellApart.getStringCellValue());
+				//性别
+				Cell cellSex = row.getCell(3);
+				user.setGender(cellSex.getStringCellValue().equals("男"));
+				//手机号
+				String mobile = "";
+				Cell cellNum = row.getCell(4);
+				try {
+					mobile = cellNum.getStringCellValue();
+				} catch (Exception e) {
+					double dMobile = cellNum.getNumericCellValue();
+					mobile = BigDecimal.valueOf(dMobile).toString();
+				}
+				user.setMobile(mobile);
+				//电子邮箱
+				Cell cellEmail = row.getCell(5);
+				user.setEmail(cellEmail.getStringCellValue());
+				//生日
+				Cell cellBirthday = row.getCell(6);
+				user.setBirthday(cellBirthday.getDateCellValue());
+				user.setPassword("123456");
+				user.setState(User.USER_STATE_VALID);
+				save(user);
+			}
+			workbook.close();
+			inputStream.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+}

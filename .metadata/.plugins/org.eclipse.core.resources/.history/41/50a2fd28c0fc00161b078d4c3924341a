@@ -1,0 +1,36 @@
+package cn.itcastTax.test;
+
+public class Test {
+
+	
+	public static void main(String[] args) {
+		bruteFore("aaa1213aa", "1213");
+	}
+
+	public static int bruteFore(String src, String sub) {
+		int i = 0, j = 0;
+		int index = -1;
+		while (i < src.length() && j < sub.length()) {
+			if (src.charAt(i) == sub.charAt(j)) {
+				i++;
+				j++;
+			} else {
+				/**
+				 * 这里理解一下下面的公式：该式子的目的是保证i的值在匹配不成功时不断向后+1 j其实表示已经成功匹配的字符数，
+				 * i是一个不断累加的过程
+				 */
+				i = i - j + 1;
+				j = 0;
+			}
+		}
+		// 判断
+		if (j == sub.length()) {
+			// 此处表示在index处开始匹配，并且后面完全匹配成功
+			index = i - sub.length();
+			System.out.println("成功");
+		}
+
+		System.out.println(index);
+		return index;
+	}
+}
